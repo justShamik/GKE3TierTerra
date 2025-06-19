@@ -1,0 +1,15 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.hcl
+
+# Sensitive files
+*.json
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
