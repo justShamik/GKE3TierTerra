@@ -20,7 +20,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 // Checkout Terraform code from your GitHub repository
-                git branch: 'main', credentialsId: 'github-credentials-id', url: 'https://github.com/nikhil090820/GCP-terraform-code.git'
+                git branch: 'master', credentialsId: 'github-credentials-id', url: 'https://github.com/justShamik/GKE3TierTerra.git'
             }
         }
  
