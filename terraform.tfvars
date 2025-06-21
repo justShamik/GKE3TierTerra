@@ -1,6 +1,7 @@
+# Terraform variable values
+
 project_name        = "white-welder-463307-r7"
 region              = "us-central1"
-service_account_key = "white-welder-463307-r7-f145bf23f4e2.json"
 node_zone           = "us-central1-a"
 public_subnet_cidr  = "10.10.10.0/24"
 private_subnet_cidr = "10.10.20.0/24"
