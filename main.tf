@@ -17,6 +17,16 @@ resource "google_project_iam_binding" "storage-admin" {
   ]
 }
 
+# Grant Artifact Registry access to automation user
+
+resource "google_project_iam_member" "artifact_reader" {
+  project = var.project_name
+  role    = "roles/artifactregistry.reader"
+  member  = "serviceAccount:${google_service_account.test-automation-user.email}"
+}
+
+
+
 #Binding service account with the compute role
 resource "google_project_iam_binding" "compute-admin" {
   depends_on = [google_service_account.test-automation-user]
