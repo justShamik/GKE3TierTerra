@@ -10,7 +10,16 @@ variable "service_account_key" {
   type = string
 }
 
-variable "subnet_cidr" {
+
+variable "public_subnet_cidr" {
+  type = string
+}
+
+variable "private_subnet_cidr" {
+  type = string
+}
+
+variable "master_cluster_cidr" {
   type = string
 }
 

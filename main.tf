@@ -1,4 +1,6 @@
-#service account 
+# ===============================
+# Service Account
+# ===============================
 resource "google_service_account" "test-automation-user" {
   account_id   = var.project_name
   project      = var.project_name
@@ -35,7 +37,9 @@ resource "google_project_iam_binding" "container-admin" {
   ]
 }
 
-#VPC 
+# ===============================
+# VPC and Subnets
+# ===============================
 resource "google_compute_network" "test-vpc" {
   name                            = "test-vpc"
   delete_default_routes_on_create = false
@@ -47,7 +51,7 @@ resource "google_compute_network" "test-vpc" {
 # SUBNETS
 resource "google_compute_subnetwork" "test-vpc_public" {
   name                     = "subnetwork-test-vpc-public"
-  ip_cidr_range            = "10.10.10.0/24"
+  ip_cidr_range            = var.public_subnet_cidr
   region                   = var.region
   network                  = google_compute_network.test-vpc.id
   private_ip_google_access = false
@@ -56,7 +60,7 @@ resource "google_compute_subnetwork" "test-vpc_public" {
 }
 resource "google_compute_subnetwork" "test-vpc_private" {
   name                     = "subnetwork-test-vpc-private"
-  ip_cidr_range            = "10.10.20.0/24"
+  ip_cidr_range            = var.private_subnet_cidr
   region                   = var.region
   network                  = google_compute_network.test-vpc.id
   project                  = var.project_name
@@ -69,7 +73,9 @@ resource "google_compute_subnetwork" "test-vpc_private" {
   # }
 }
 
-#Firewall rules
+# ===============================
+# Firewall
+# ===============================
 resource "google_compute_firewall" "default" {
   name    = "default-firewall"
   network = google_compute_network.test-vpc.id
@@ -87,7 +93,9 @@ resource "google_compute_firewall" "default" {
   source_ranges = ["0.0.0.0/0"]
 }
 
-# NAT ROUTER for accessing private instances in subnet 
+# ===============================
+# NAT Gateway
+# ===============================
 resource "google_compute_router" "test-vpc" {
   name    = "testvpc-router"
   region  = var.region
@@ -110,7 +118,9 @@ resource "google_compute_router_nat" "test-vpc" {
 }
 
 
+# ===============================
 # GKE Cluster
+# ===============================
 resource "google_container_cluster" "democluster" {
   name     = "democluster"
   location = var.region
@@ -130,7 +140,7 @@ resource "google_container_cluster" "democluster" {
   private_cluster_config {
     enable_private_endpoint = false
     enable_private_nodes    = true
-    master_ipv4_cidr_block  = "10.10.30.0/28"
+    master_ipv4_cidr_block  = var.master_cluster_cidr
   }
   master_authorized_networks_config {
 
@@ -141,7 +151,9 @@ resource "google_container_cluster" "democluster" {
   depends_on = [google_service_account.test-automation-user]
 }
 
-#node pool for the GKE
+# ===============================
+# GKE Node Pool
+# ===============================
 resource "google_container_node_pool" "master" {
   name     = "master"
   project  = var.project_name
@@ -170,10 +182,12 @@ resource "google_container_node_pool" "master" {
 
 
 
-#bastion resource for gke
+# ===============================
+# Bastion Host
+# ===============================
 resource "google_compute_instance" "bastion" {
   name         = "bastion-vm-gke"
-  machine_type = "e2-medium"
+  machine_type = "e2-standard-2"
   zone         = var.node_zone
   project      = var.project_name
   boot_disk {
@@ -190,9 +204,31 @@ resource "google_compute_instance" "bastion" {
   }
   tags                    = ["bastion"]
   metadata_startup_script = <<-EOT
-  #!/bin/bash
-  sudo apt-get update -y
-  sudo apt-get install kubectl -y
+    #!/bin/bash
+    echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
+    sudo apt-get update -y
+    sudo apt-get install -y curl apt-transport-https ca-certificates gnupg lsb-release gnupg2 unzip
+
+    # Kubectl install
+    sudo apt-get update
+    sudo apt-get install kubectl
+    sudo apt-get install google-cloud-sdk-gke-gcloud-auth-plugin
+
+    # Install gcloud CLI
+    echo "Installing Google Cloud SDK..."
+    export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)"
+    echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+    sudo apt-get update -y && sudo apt-get install -y google-cloud-sdk
+
+    # Authenticate and configure gcloud CLI
+    gcloud config set project ${var.project_name}
+    gcloud container clusters get-credentials democluster --region ${var.region} --project ${var.project_name}
+
+    # Install ArgoCD in Kubernetes
+    kubectl create namespace argocd || true
+    kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+    kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
   EOT
 }
 
