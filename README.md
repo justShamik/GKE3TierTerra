@@ -1,330 +1,191 @@
-GKE 3-Tier Infrastructure with Terraform
+# 🚀 GKE 3-Tier Infrastructure with Terraform
 
-This project deploys a 3-tier architecture on Google Cloud Platform (GCP) using Terraform. It includes a VPC with public and private subnets, a private GKE cluster, a service account with necessary IAM roles, and a bastion host for secure cluster access. The bastion host also sets up ArgoCD for GitOps.
+This project deploys a **3-tier architecture** on **Google Cloud Platform (GCP)** using **Terraform**. It provisions:
 
-Table of Contents
+* A custom VPC with public/private subnets and firewall rules
+* A private GKE cluster with restricted access
+* A service account with necessary IAM roles
+* A bastion host for secure access and GitOps (via ArgoCD)
 
+---
 
+## 📚 Table of Contents
 
+* [Overview](#overview)
+* [Prerequisites](#prerequisites)
+* [Directory Structure](#directory-structure)
+* [Modules](#modules)
+* [Setup Instructions](#setup-instructions)
+* [Usage](#usage)
+* [Outputs](#outputs)
+* [Notes](#notes)
 
+---
 
-Overview
+## 🧭 Overview
 
+### Infrastructure Components
 
+* **VPC**: Custom network with public and private subnets, firewall rules, and NAT gateway for egress.
+* **GKE Cluster**: Private cluster with one node pool, restricted to bastion access.
+* **IAM**: Service account with required GCP permissions.
+* **Bastion Host**: Public VM with `kubectl`, `gcloud`, and ArgoCD installed.
 
-Prerequisites
+---
 
+## ✅ Prerequisites
 
+* **GCP Account**: Billing-enabled project
+* **Terraform**: Version 1.5 or higher
+* **Service Account Key**: JSON key file with permissions to manage GCP resources
+* **GCS Bucket**: For storing Terraform state (e.g., `shamiktestbucket`)
+* **gcloud CLI** *(optional)*: For manual GKE interaction
 
-Directory Structure
+---
 
+## 🗂️ Directory Structure
 
-
-Modules
-
-
-
-Setup Instructions
-
-
-
-Usage
-
-
-
-Outputs
-
-
-
-Notes
-
-Overview
-
-The infrastructure includes:
-
-
-
-
-
-VPC: Custom VPC with public and private subnets, firewall rules, and a NAT gateway for private subnet egress.
-
-
-
-GKE Cluster: Private GKE cluster with a single node pool, restricted to bastion host access.
-
-
-
-IAM: Service account with roles for storage, compute, container, and artifact registry access.
-
-
-
-Bastion Host: Compute instance in the public subnet, configured with kubectl, gcloud, and ArgoCD.
-
-Prerequisites
-
-
-
-
-
-GCP Account: Access to a GCP project with billing enabled.
-
-
-
-Terraform: Version 1.5 or higher.
-
-
-
-Service Account Key: JSON key file for a service account with permissions to manage GCP resources.
-
-
-
-GCS Bucket: A bucket for Terraform state (e.g., shamiktestbucket).
-
-
-
-gcloud CLI: Optional, for manual interaction with the GKE cluster.
-
-Directory Structure
-
+```
 .
-├── main.tf                # Root Terraform configuration
+├── main.tf                # Root Terraform config
 ├── variables.tf           # Input variables
 ├── outputs.tf             # Output values
-├── provider.tf            # Google Cloud provider configuration
-├── backend.tf             # GCS backend for Terraform state
+├── provider.tf            # GCP provider config
+├── backend.tf             # GCS backend config
 ├── terraform.tfvars       # Variable values
 ├── modules
 │   ├── vpc
-│   │   ├── main.tf        # VPC, subnets, firewall, router, NAT
-│   │   ├── variables.tf   # VPC module variables
-│   │   ├── outputs.tf     # VPC module outputs
+│   │   ├── main.tf        # VPC, subnets, firewall, NAT
+│   │   ├── variables.tf
+│   │   └── outputs.tf
 │   ├── gke
 │   │   ├── main.tf        # GKE cluster and node pool
-│   │   ├── variables.tf   # GKE module variables
-│   │   ├── outputs.tf     # GKE module outputs
+│   │   ├── variables.tf
+│   │   └── outputs.tf
 │   ├── iam
-│   │   ├── main.tf        # Service account and IAM roles
-│   │   ├── variables.tf   # IAM module variables
-│   │   ├── outputs.tf     # IAM module outputs
-│   ├── bastion
-│   │   ├── main.tf        # Bastion host configuration
-│   │   ├── variables.tf   # Bastion module variables
-│   │   ├── outputs.tf     # Bastion module outputs
+│   │   ├── main.tf        # Service account and roles
+│   │   ├── variables.tf
+│   │   └── outputs.tf
+│   └── bastion
+│       ├── main.tf        # Bastion host and ArgoCD
+│       ├── variables.tf
+│       └── outputs.tf
+```
 
-Modules
+---
 
+## 📦 Modules
 
+### 🔹 VPC Module
 
+* Creates `test-vpc` with public/private subnets
+* Adds firewall rules (HTTP, HTTPS, SSH, ICMP, ports 1000-2000)
+* Sets up Cloud Router and NAT for egress
 
+### 🔹 GKE Module
 
-VPC Module:
+* Deploys private cluster `democluster`
+* Single node pool (preemptible `e2-medium` instances)
+* Master access restricted to bastion public IP
 
+### 🔹 IAM Module
 
+* Creates service account `test-automation-user`
+* Grants roles:
 
+  * `roles/storage.admin`
+  * `roles/artifactregistry.reader`
+  * `roles/compute.admin`
+  * `roles/container.admin`
 
+### 🔹 Bastion Module
 
-Creates a custom VPC (test-vpc) with public and private subnets.
+* Deploys `bastion-vm-gke` in public subnet
+* Installs:
 
+  * `kubectl`
+  * `gcloud`
+  * **ArgoCD** (via startup script with LoadBalancer)
 
+---
 
-Configures firewall rules to allow HTTP, HTTPS, SSH, ICMP, and ports 1000-2000.
+## ⚙️ Setup Instructions
 
+### 1. Clone the Repository
 
-
-Sets up a cloud router and NAT gateway for private subnet egress.
-
-
-
-GKE Module:
-
-
-
-
-
-Deploys a private GKE cluster (democluster) with private nodes.
-
-
-
-Configures a single node pool with preemptible e2-medium instances.
-
-
-
-Restricts master access to the bastion host's public IP.
-
-
-
-IAM Module:
-
-
-
-
-
-Creates a service account (test-automation-user) with roles:
-
-
-
-
-
-roles/storage.admin
-
-
-
-roles/artifactregistry.reader
-
-
-
-roles/compute.admin
-
-
-
-roles/container.admin
-
-
-
-Bastion Module:
-
-
-
-
-
-Deploys a bastion host (bastion-vm-gke) in the public subnet.
-
-
-
-Installs kubectl, gcloud, and ArgoCD via a startup script.
-
-
-
-Configures ArgoCD with a LoadBalancer service.
-
-Setup Instructions
-
-
-
-
-
-Clone the Repository:
-
+```bash
 git clone https://github.com/justShamik/GKE3TierTerra.git
 cd GKE3TierTerra
+```
 
+### 2. Configure Variables
 
+Edit `terraform.tfvars` with your GCP project settings.
 
-Configure Variables:
+### 3. Set Up Authentication
 
+Place your service account key JSON in the root directory. Then run:
 
-
-
-
-Update terraform.tfvars with your GCP project details:
-
-
-
-Set Up Authentication:
-
-
-
-
-
-Place your service account key file in the project directory.
-
-
-
-Set the GOOGLE_CREDENTIALS environment variable:
-
+```bash
 export GOOGLE_CREDENTIALS=$(cat path/to/your-service-account-key.json)
+```
 
+### 4. Initialize Terraform
 
-
-Initialize Terraform:
-
+```bash
 terraform init
+```
 
+### 5. Plan and Apply
 
-
-Plan and Apply:
-
+```bash
 terraform plan -out=tfplan
 terraform apply tfplan
+```
 
-Usage
+---
 
+## 🛠️ Usage
 
+### Access the GKE Cluster
 
+1. SSH into the bastion:
 
+```bash
+gcloud compute ssh bastion-vm-gke --zone us-central1-a --project <your-project-id>
+```
 
-Access the GKE Cluster:
+2. Use `kubectl` from the bastion to manage the cluster.
 
+### Access ArgoCD
 
+1. Get ArgoCD service external IP:
 
-
-
-SSH into the bastion host to interact with the GKE cluster:
-
-gcloud compute ssh bastion-vm-gke --zone us-central1-a --project your-project-id
-
-
-
-Use kubectl on the bastion to manage the cluster.
-
-
-
-ArgoCD:
-
-
-
-
-
-The bastion host automatically installs ArgoCD and exposes it as a LoadBalancer.
-
-
-
-Get the ArgoCD service IP:
-
+```bash
 kubectl get svc argocd-server -n argocd
+```
 
+2. Visit the external IP in your browser to open the ArgoCD UI.
 
+---
 
-Access the ArgoCD UI using the external IP.
+## 📤 Outputs
 
-Outputs
+| Output Name             | Description                   |
+| ----------------------- | ----------------------------- |
+| `vpc_id`                | ID of the created VPC         |
+| `gke_cluster_endpoint`  | Endpoint of the GKE cluster   |
+| `service_account_email` | Email of the service account  |
+| `bastion_nat_ip`        | Public IP of the bastion host |
 
+---
 
+## 📝 Notes
 
+* **Service Account Key**: Ensure it has sufficient permissions (as outlined above).
+* **ArgoCD**: The startup script patches the service to use a LoadBalancer.
 
+---
 
-vpc_id: ID of the created VPC.
+📬 For issues or enhancements, feel free to open an [issue](https://github.com/justShamik/GKE3TierTerra/issues) or a [pull request](https://github.com/justShamik/GKE3TierTerra/pulls).
 
-
-
-gke_cluster_endpoint: Endpoint of the GKE cluster.
-
-
-
-service_account_email: Email of the service account.
-
-
-
-bastion_nat_ip: Public IP of the bastion host.
-
-Notes
-
-
-
-
-
-Service Account Key: Ensure the key file specified in terraform.tfvars has sufficient permissions.
-
-
-
-ArgoCD: The startup script patches ArgoCD to use a LoadBalancer. Verify the service is accessible.
-
-
-
-Extensions: To add a GCP load balancer or Helm deployments, create additional modules or extend the bastion startup script.
-
-
-
-Testing: Test in a non-production environment first to validate the configuration.
-
-For issues or enhancements, open a pull request or issue on the repository.
