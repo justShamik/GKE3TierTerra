@@ -24,12 +24,12 @@ module "iam" {
 }
 
 module "bastion" {
-  source             = "./modules/bastion"
-  project_name       = var.project_name
-  region             = var.region
-  node_zone          = var.node_zone
-  vpc_name           = module.vpc.vpc_name
-  public_subnet_name = module.vpc.public_subnet_name
+  source                  = "./modules/bastion"
+  project_name            = var.project_name
+  region                  = var.region
+  node_zone               = var.node_zone
+  vpc_name                = module.vpc.vpc_name
+  public_subnet_name      = module.vpc.public_subnet_name
   public_subnet_self_link = module.vpc.public_subnet_self_link
 }
 

@@ -37,7 +37,8 @@ resource "google_container_node_pool" "master" {
   node_locations = [var.node_zone]
 
   node_config {
-    preemptible     = true
+    preemptible     = false
+    spot            = true
     machine_type    = "e2-medium"
     service_account = var.service_account_email
     oauth_scopes = [
